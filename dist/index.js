@@ -59,20 +59,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
-const github = __importStar(__nccwpck_require__(5438));
+const github_1 = __nccwpck_require__(5438);
 const LogConfig_1 = __nccwpck_require__(1421);
 /* Creates a logger called "model.Account" */
 const log = LogConfig_1.log4TSProvider.getLogger('main');
+const GITHUB_TOKEN = core.getInput('repo_token', { required: true });
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            log.info(JSON.stringify(github.context));
+            log.info(JSON.stringify(github_1.context));
+            yield createCommentOnContext();
             core.setOutput('time', new Date().toTimeString());
         }
         catch (error) {
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
+    });
+}
+function createCommentOnContext() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const Github = (0, github_1.getOctokit)(GITHUB_TOKEN).rest;
+        return Github.issues.create(Object.assign(Object.assign({}, github_1.context.repo), { title: 'Production deployment approval', assignee: '', body: JSON.stringify({
+                repo: github_1.context.repo,
+                ref: github_1.context.ref
+            }) }));
     });
 }
 run();
