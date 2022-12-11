@@ -9,7 +9,7 @@ test('throws invalid number', async () => {
   await expect(wait(input)).rejects.toThrow('milliseconds not a number')
 })
 
-test('wait 500 ms', async () => {
+/*test('wait 500 ms', async () => {
   const start = new Date()
   await wait(500)
   const end = new Date()
@@ -26,4 +26,4 @@ test('test runs', () => {
     env: process.env
   }
   console.log(cp.execFileSync(np, [ip], options).toString())
-})
+})*/
