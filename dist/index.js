@@ -1,6 +1,29 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 1421:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.log4TSProvider = void 0;
+// eslint-disable-next-line filenames/match-regex
+const typescript_logging_1 = __nccwpck_require__(7282);
+// eslint-disable-next-line sort-imports
+const typescript_logging_log4ts_style_1 = __nccwpck_require__(8928);
+exports.log4TSProvider = typescript_logging_log4ts_style_1.Log4TSProvider.createProvider('AwesomeLog4TSProvider', {
+    level: typescript_logging_1.LogLevel.Debug,
+    groups: [
+        {
+            expression: new RegExp('.+')
+        }
+    ]
+});
+
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -37,10 +60,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const LogConfig_1 = __nccwpck_require__(1421);
+/* Creates a logger called "model.Account" */
+const log = LogConfig_1.log4TSProvider.getLogger('main');
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log(JSON.stringify(github.context));
+            log.info(JSON.stringify(github.context));
             core.setOutput('time', new Date().toTimeString());
         }
         catch (error) {
@@ -8844,6 +8870,1716 @@ if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
   debug = function() {};
 }
 exports.debug = debug; // for test
+
+
+/***/ }),
+
+/***/ 8928:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+/**
+ * Extends Map and adds a few convenient functions.
+ */
+class EnhancedMap extends Map {
+    /**
+     * If key has a mapping already returns the currently associated value. If
+     * there is no mapping, calls the computer which must return a value V.
+     * The value is then stored for given key and returned.
+     * @param key Key
+     * @param computer Computer which is called only if key has no mapping yet.
+     * @return Existing value if the key already existed, or the newly computed value.
+     */
+    computeIfAbsent(key, computer) {
+        if (this.has(key)) {
+            return this.get(key);
+        }
+        const newValue = computer(key);
+        this.set(key, newValue);
+        return newValue;
+    }
+    /**
+     * If the key exists already calls given computer, if the key does not exist
+     * this method does nothing.
+     *
+     * The computer is called with current key and current value associated. The
+     * computer can return a (new) value V or undefined. When undefined is returned
+     * the key is removed from this map, when a V is returned the key is updated
+     * with the new value V.
+     * @param key Key
+     * @param computer Computer which is called only if the key has a mapping already
+     * @return Undefined if the key has no mapping, otherwise the value returned from computer
+     */
+    computeIfPresent(key, computer) {
+        const currentValue = this.get(key);
+        if (currentValue === undefined) {
+            return undefined;
+        }
+        const newValue = computer(key, currentValue);
+        if (newValue !== undefined) {
+            this.set(key, newValue);
+        }
+        else {
+            this.delete(key);
+        }
+        return newValue;
+    }
+    /**
+     * Computes a value for given key, the computer can return a value V (in which case the map
+     * will set the value for given key), if it returns undefined the mapping for key K will be
+     * removed.
+     * @param key Key to compute
+     * @param computer Computer which is called, note that the currentValue argument contains the existing
+     *                 value or is undefined when no mapping exists for the key.
+     * @return The newly computed value
+     */
+    compute(key, computer) {
+        const currentValue = this.get(key);
+        const newValue = computer(key, currentValue);
+        if (newValue) {
+            this.set(key, newValue);
+        }
+        else {
+            this.delete(key);
+        }
+        return newValue;
+    }
+}
+
+/**
+ * Internal log level (note: do NOT use LogLevel, or we get circular loading issues!)
+ */
+var InternalLogLevel;
+(function (InternalLogLevel) {
+    InternalLogLevel[InternalLogLevel["Trace"] = 0] = "Trace";
+    InternalLogLevel[InternalLogLevel["Debug"] = 1] = "Debug";
+    InternalLogLevel[InternalLogLevel["Info"] = 2] = "Info";
+    InternalLogLevel[InternalLogLevel["Warn"] = 3] = "Warn";
+    InternalLogLevel[InternalLogLevel["Error"] = 4] = "Error";
+})(InternalLogLevel || (InternalLogLevel = {}));
+/**
+ * Internal logger, this is NOT for end users. Instead this is used to enable logging for typescript-logging itself in case of problems.
+ *
+ * @param name Name of logger
+ */
+function getInternalLogger(name) {
+    return provider.getLogger(name);
+}
+/**
+ * Can be used to change the *internal* logging of the library.
+ * Has no effect on end user logging.
+ *
+ * As such should normally not be used by end users.
+ */
+const INTERNAL_LOGGING_SETTINGS = {
+    /**
+     * Changes the log level for the internal logging (for all new and existing loggers)
+     * @param level New log level
+     */
+    setInternalLogLevel: (level) => provider.changeLogLevel(level),
+    /**
+     * Changes where messages are written to for all new and existing loggers),
+     * by default they are written to the console.
+     * @param fnOutput Function to write messages to
+     */
+    setOutput: (fnOutput) => provider.changeOutput(fnOutput),
+    /**
+     * Resets the log level and output back to defaults (level to error and writing to console)
+     * for all new and existing loggers.
+     */
+    reset: () => provider.reset(),
+};
+class InternalLoggerImpl {
+    constructor(name, level, fnOutput) {
+        this._name = name;
+        this._level = level;
+        this._fnOutput = fnOutput;
+    }
+    trace(msg) {
+        this.log(InternalLogLevel.Trace, msg);
+    }
+    debug(msg) {
+        this.log(InternalLogLevel.Debug, msg);
+    }
+    error(msg, error) {
+        this.log(InternalLogLevel.Error, msg, error);
+    }
+    info(msg) {
+        this.log(InternalLogLevel.Info, msg);
+    }
+    warn(msg, error) {
+        this.log(InternalLogLevel.Warn, msg, error);
+    }
+    setLevel(level) {
+        this._level = level;
+    }
+    setOutput(fnOutput) {
+        this._fnOutput = fnOutput;
+    }
+    log(level, msg, error) {
+        if (this._level > level) {
+            return;
+        }
+        // tslint:disable-next-line:no-console
+        this._fnOutput(`${InternalLogLevel[this._level].toString()} <INTERNAL LOGGER> ${this._name} ${msg()}${error ? "\n" + error.stack : ""}`);
+    }
+}
+class InternalProviderImpl {
+    constructor() {
+        this._loggers = new EnhancedMap();
+        this._logLevel = InternalLogLevel.Error;
+        this._fnOutput = InternalProviderImpl.logConsole;
+    }
+    getLogger(name) {
+        return this._loggers.computeIfAbsent(name, key => new InternalLoggerImpl(key, this._logLevel, this._fnOutput));
+    }
+    changeLogLevel(level) {
+        this._logLevel = level;
+        this._loggers.forEach(logger => logger.setLevel(level));
+    }
+    changeOutput(_fnOutput) {
+        this._fnOutput = _fnOutput;
+        this._loggers.forEach(logger => logger.setOutput(this._fnOutput));
+    }
+    reset() {
+        this.changeLogLevel(InternalLogLevel.Error);
+        this._fnOutput = InternalProviderImpl.logConsole;
+        this._loggers.forEach(logger => logger.setOutput(this._fnOutput));
+    }
+    static logConsole(msg) {
+        // tslint:disable-next-line:no-console
+        if (console && console.log) {
+            // tslint:disable-next-line:no-console
+            console.log(msg);
+        }
+    }
+}
+const provider = new InternalProviderImpl();
+
+var InternalLogger = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  get InternalLogLevel () { return InternalLogLevel; },
+  getInternalLogger: getInternalLogger,
+  INTERNAL_LOGGING_SETTINGS: INTERNAL_LOGGING_SETTINGS
+});
+
+/**
+ * Log level for a logger.
+ */
+var LogLevel;
+(function (LogLevel) {
+    // Do not reverse/change order, a test relies on it.
+    LogLevel[LogLevel["Trace"] = 0] = "Trace";
+    LogLevel[LogLevel["Debug"] = 1] = "Debug";
+    LogLevel[LogLevel["Info"] = 2] = "Info";
+    LogLevel[LogLevel["Warn"] = 3] = "Warn";
+    LogLevel[LogLevel["Error"] = 4] = "Error";
+    LogLevel[LogLevel["Fatal"] = 5] = "Fatal";
+})(LogLevel || (LogLevel = {}));
+/* tslint:disable:no-namespace */
+(function (LogLevel) {
+    /**
+     * Convert given value to LogLevel, if not matching returns undefined.
+     * @param val Value to convert
+     */
+    function toLogLevel(val) {
+        switch (val.toLowerCase()) {
+            case "trace":
+                return LogLevel.Trace;
+            case "debug":
+                return LogLevel.Debug;
+            case "info":
+                return LogLevel.Info;
+            case "warn":
+                return LogLevel.Warn;
+            case "error":
+                return LogLevel.Error;
+            case "fatal":
+                return LogLevel.Fatal;
+            default:
+                return undefined;
+        }
+    }
+    LogLevel.toLogLevel = toLogLevel;
+})(LogLevel || (LogLevel = {}));
+/* tslint:disable:enable-namespace */
+
+/**
+ * Standard logger implementation that provides the basis for all loggers.
+ */
+class CoreLoggerImpl {
+    constructor(runtime) {
+        this._runtime = runtime;
+    }
+    get id() {
+        return this._runtime.id;
+    }
+    get logLevel() {
+        return this._runtime.level;
+    }
+    get runtimeSettings() {
+        /* Return it as new literal, we don't want people to play with our internal state */
+        return Object.assign({}, this._runtime);
+    }
+    set runtimeSettings(runtime) {
+        this._runtime = runtime;
+    }
+    trace(message, ...args) {
+        this.logMessage(LogLevel.Trace, message, args);
+    }
+    debug(message, ...args) {
+        this.logMessage(LogLevel.Debug, message, args);
+    }
+    info(message, ...args) {
+        this.logMessage(LogLevel.Info, message, args);
+    }
+    warn(message, ...args) {
+        this.logMessage(LogLevel.Warn, message, args);
+    }
+    error(message, ...args) {
+        this.logMessage(LogLevel.Error, message, args);
+    }
+    fatal(message, ...args) {
+        this.logMessage(LogLevel.Fatal, message, args);
+    }
+    logMessage(level, logMessageType, args) {
+        if (this._runtime.level > level) {
+            return;
+        }
+        const nowMillis = Date.now();
+        const message = typeof logMessageType === "string" ? logMessageType : logMessageType();
+        const errorAndArgs = CoreLoggerImpl.getErrorAndArgs(args);
+        /*
+         * Deal with raw message here.
+         */
+        switch (this._runtime.channel.type) {
+            case "RawLogChannel":
+                this._runtime.channel.write({
+                    message,
+                    exception: errorAndArgs.error,
+                    args: errorAndArgs.args,
+                    timeInMillis: nowMillis,
+                    level,
+                    logNames: this._runtime.name,
+                }, this._runtime.argumentFormatter);
+                return;
+            case "LogChannel":
+                this._runtime.channel.write(this.createLogMessage(message, level, errorAndArgs, nowMillis));
+                break;
+        }
+    }
+    formatArgValue(value) {
+        try {
+            return this._runtime.argumentFormatter(value);
+        }
+        catch (e) {
+            // We don't really care what failed, except that the convert function failed.
+            return `>>ARG CONVERT FAILED: '${value !== undefined ? value.toString() : "undefined"}'<<`;
+        }
+    }
+    createLogMessage(message, level, errorAndArgs, nowMillis) {
+        let errorResult;
+        const error = errorAndArgs.error;
+        const args = errorAndArgs.args;
+        if (error) {
+            errorResult = `${error.name}: ${error.message}`;
+            if (error.stack) {
+                errorResult += `@\n${error.stack}`;
+            }
+        }
+        /*
+         * We need to add the date, and log names (in front of the now formatted message).
+         * Finally we also need to format any additional arguments and append after the message.
+         */
+        const dateFormatted = this._runtime.dateFormatter(nowMillis);
+        let levelAsStr = LogLevel[level].toUpperCase();
+        if (levelAsStr.length < 5) {
+            levelAsStr += " ";
+        }
+        const names = typeof this._runtime.name === "string" ? this._runtime.name : this._runtime.name.join(", ");
+        const argsFormatted = typeof args !== "undefined" && args.length > 0 ? (" [" + (args.map(arg => this.formatArgValue(arg))).join(", ") + "]") : "";
+        const completedMessage = dateFormatted + " " + levelAsStr + " [" + names + "] " + message + argsFormatted;
+        return {
+            message: completedMessage,
+            error: errorResult,
+        };
+    }
+    static getErrorAndArgs(args) {
+        /*
+          The args are optional, but the first entry may be an Error or a function to an Error, or finally be a function to extra arguments.
+          The last is only true, if the length of args === 1, otherwise we expect args starting at pos 1 and further to be just that - args.
+         */
+        if (args.length === 0) {
+            return {};
+        }
+        let error;
+        let actualArgs;
+        const value0 = args[0];
+        /* If the first argument is an Error, we can stop straight away, the rest are additional arguments then if any */
+        if (value0 instanceof Error) {
+            error = value0;
+            actualArgs = args.length > 1 ? args.slice(1) : undefined;
+            return { error, args: actualArgs };
+        }
+        /* If the first argument is a function, it means either it will return the Error, or if the array length === 1 a function, returning the arguments */
+        if (typeof value0 === "function") {
+            const errorOrArgs = value0();
+            if (errorOrArgs instanceof Error) {
+                error = errorOrArgs;
+                actualArgs = args.length > 1 ? args.slice(1) : undefined;
+                return { error, args: actualArgs };
+            }
+            if (args.length === 1) {
+                /* The first argument was a function, we assume it returned the extra argument(s) */
+                if (Array.isArray(errorOrArgs)) {
+                    return { args: errorOrArgs.length > 0 ? errorOrArgs : undefined };
+                }
+                else {
+                    /* No idea what was returned we just assume a single value */
+                    return { args: errorOrArgs };
+                }
+            }
+            else {
+                /*
+                  This is a weird situation but there's no way to avoid it, the first argument was a function but did not return an Error and the args are > 1,
+                  so just add the args returned, as well as any remaining.
+                */
+                if (Array.isArray(errorOrArgs)) {
+                    return { args: [...errorOrArgs, ...args.slice(1)] };
+                }
+                return { args: [errorOrArgs, ...args.slice(1)] };
+            }
+        }
+        /* All args are ordinary arguments, or at least the first arg was not an Error or a Function, so we add all as args */
+        return { args };
+    }
+}
+
+/**
+ * Pad given value with given fillChar from the beginning (default is an empty space)
+ * @param value Value to pad
+ * @param length The length the string must be
+ * @param fillChar The padding char (1 char length allowed only)
+ * @return Padded string or the same string if it is already of given length (or larger).
+ */
+function padStart(value, length, fillChar = " ") {
+    return padInternal(value, length, "start", fillChar);
+}
+/**
+ * Pad given value with given fillChar from the end (default is an empty space)
+ * @param value Value to pad
+ * @param length The length the string must be
+ * @param fillChar The padding char (1 char length allowed only)
+ * @return Padded string or the same string if it is already of given length (or larger).
+ */
+function padEnd(value, length, fillChar = " ") {
+    return padInternal(value, length, "end", fillChar);
+}
+/**
+ * Returns the max length of a string value in given array
+ * @param arr Array to check
+ * @return Max length, 0 if array is empty
+ */
+function maxLengthStringValueInArray(arr) {
+    return arr
+        .map(v => v.length)
+        .reduce((previous, current) => {
+        if (current > previous) {
+            return current;
+        }
+        return previous;
+    }, 0);
+}
+function padInternal(value, length, padType, fillChar = " ") {
+    if (length <= value.length) {
+        return value;
+    }
+    if (fillChar.length > 1) {
+        throw new Error(`Fill char must be one char exactly, it is: ${fillChar.length}`);
+    }
+    const charsNeeded = length - value.length;
+    let padding = "";
+    for (let i = 0; i < charsNeeded; i++) {
+        padding += fillChar;
+    }
+    if (padType === "start") {
+        return padding + value;
+    }
+    return value + padding;
+}
+
+/**
+ * Default argument formatter function, used by the library, see {@link ArgumentFormatterType}.
+ * Can be used by an end user as well if needed.
+ * @param arg The argument to format
+ * @returns argument stringified to string (JSON.stringify), if arg is undefined returns "undefined" (without quotes).
+ */
+function formatArgument(arg) {
+    if (arg === undefined) {
+        return "undefined";
+    }
+    return JSON.stringify(arg);
+}
+/**
+ * Default date formatter function, used by the library, see {@link DateFormatterType}.
+ * Can be used by an end user as well if needed.
+ * @param millisSinceEpoch Milliseconds since epoch
+ * @returns The date in format: yyyy-MM-dd HH:mm:ss,SSS (example: 2021-02-26 09:06:28,123)
+ */
+function formatDate(millisSinceEpoch) {
+    const date = new Date(millisSinceEpoch);
+    const year = date.getFullYear();
+    const month = padStart((date.getMonth() + 1).toString(), 2, "0");
+    const day = padStart(date.getDate().toString(), 2, "0");
+    const hours = padStart(date.getHours().toString(), 2, "0");
+    const minutes = padStart(date.getMinutes().toString(), 2, "0");
+    const seconds = padStart(date.getSeconds().toString(), 2, "0");
+    const millis = padStart(date.getMilliseconds().toString(), 2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds},${millis}`;
+}
+
+/* tslint:disable:no-console */
+/**
+ * Default standard LogChannel which logs to console.
+ */
+class ConsoleLogChannel {
+    constructor() {
+        this.type = "LogChannel";
+    }
+    write(msg) {
+        if (console && console.log) {
+            console.log(msg.message + (msg.error ? `\n${msg.error}` : ""));
+        }
+    }
+}
+
+/* tslint:disable:no-namespace */
+/**
+ * Provides access to various default channels provided by typescript logging.
+ */
+var DefaultChannels;
+(function (DefaultChannels) {
+    /**
+     * Create a new standard LogChannel that logs to the console.
+     */
+    function createConsoleChannel() {
+        return new ConsoleLogChannel();
+    }
+    DefaultChannels.createConsoleChannel = createConsoleChannel;
+})(DefaultChannels || (DefaultChannels = {}));
+
+/**
+ * Implementation for {@link LogProvider}
+ */
+class LogProviderImpl {
+    constructor(name, settings) {
+        this._log = getInternalLogger("core.impl.LogProviderImpl");
+        this._name = name;
+        this._settings = settings;
+        this._loggers = new EnhancedMap();
+        this._idToKeyMap = new EnhancedMap();
+        this._globalRuntimeSettings = { level: settings.level, channel: settings.channel };
+        this._nextLoggerId = 1;
+        this._log.trace(() => `Created LogProviderImpl with settings: ${JSON.stringify(this._settings)}`);
+    }
+    get runtimeSettings() {
+        return Object.assign(Object.assign({}, this._settings), { level: this._globalRuntimeSettings.level, channel: this._globalRuntimeSettings.channel });
+    }
+    getLogger(name) {
+        return this.getOrCreateLogger(name);
+    }
+    updateLoggerRuntime(log, settings) {
+        this._log.debug(() => `Updating logger ${log.id} runtime settings using: '${JSON.stringify(settings)}'`);
+        const key = this._idToKeyMap.get(log.id);
+        if (key === undefined) {
+            this._log.warn(() => `Cannot update logger with id: ${log.id}, it was not found.`);
+            return false;
+        }
+        this._loggers.computeIfPresent(key, (currentKey, currentValue) => {
+            currentValue.runtimeSettings = LogProviderImpl.mergeRuntimeSettingsIntoLogRuntime(currentValue.runtimeSettings, settings);
+            return currentValue;
+        });
+        return true;
+    }
+    updateRuntimeSettings(settings) {
+        this._log.debug(() => `Updating global runtime settings and updating existing loggers runtime settings using: '${JSON.stringify(settings)}'`);
+        this._globalRuntimeSettings = {
+            /*
+             * Undefined check is necessary, as level is a number (and LogLevel.Trace = 0), a ternary check otherwise results in the annoying "truthy/falsy"
+             * behavior of javascript where 0 is seen as false.
+             */
+            level: settings.level !== undefined ? settings.level : this._globalRuntimeSettings.level,
+            channel: settings.channel !== undefined ? settings.channel : this._globalRuntimeSettings.channel,
+        };
+        this._loggers.forEach(logger => logger.runtimeSettings = LogProviderImpl.mergeRuntimeSettingsIntoLogRuntime(logger.runtimeSettings, settings));
+    }
+    /**
+     * Removes all state and loggers, it reverts back to as it was after initial construction.
+     */
+    clear() {
+        this._loggers.clear();
+        this._idToKeyMap.clear();
+        this._globalRuntimeSettings = Object.assign({}, this._settings);
+        this._nextLoggerId = 1;
+    }
+    getOrCreateLogger(name) {
+        const key = LogProviderImpl.createKey(name);
+        const logger = this._loggers.computeIfAbsent(key, () => {
+            const runtime = {
+                level: this._globalRuntimeSettings.level,
+                channel: this._globalRuntimeSettings.channel,
+                id: this.nextLoggerId(),
+                name,
+                argumentFormatter: this._settings.argumentFormatter,
+                dateFormatter: this._settings.dateFormatter,
+            };
+            return new CoreLoggerImpl(runtime);
+        });
+        this._idToKeyMap.computeIfAbsent(logger.id, () => key);
+        return logger;
+    }
+    nextLoggerId() {
+        const result = this._name + "_" + this._nextLoggerId;
+        this._nextLoggerId++;
+        return result;
+    }
+    static mergeRuntimeSettingsIntoLogRuntime(currentSettings, settings) {
+        return Object.assign(Object.assign({}, currentSettings), { 
+            /*
+             * Undefined check is necessary, as level is a number (and LogLevel.Trace = 0), a ternary check otherwise results in the annoying "truthy/falsy"
+             * behavior of javascript where 0 is seen as false.
+             */
+            level: settings.level !== undefined ? settings.level : currentSettings.level, channel: settings.channel !== undefined ? settings.channel : currentSettings.channel });
+    }
+    static createKey(name) {
+        if (typeof name === "string") {
+            return name;
+        }
+        return name.join(",");
+    }
+}
+
+/**
+ * Create a new LogProvider, this is for flavor usage only. End users should not
+ * use this and instead use whatever the flavor offers to build some config and
+ * get loggers from there.
+ */
+function createLogProvider(name, settings) {
+    return new LogProviderImpl(name, settings);
+}
+
+var index = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  EnhancedMap: EnhancedMap,
+  padStart: padStart,
+  padEnd: padEnd,
+  maxLengthStringValueInArray: maxLengthStringValueInArray
+});
+
+function log4TSGroupConfigDebug(config) {
+    return `Log4TSGroupConfig=level: ${LogLevel[config.level].toString()}, expression: ${config.expression.toString()}, (omitted functions/channel)`;
+}
+function log4TSConfigDebug(config) {
+    const groupLog = config.groups.map(g => log4TSGroupConfigDebug(g)).join(", ");
+    return `Log4TSGroupConfig=level: ${LogLevel[config.level].toString()}, groups: ${groupLog}, (omitted functions/channel)`;
+}
+
+/**
+ * Implementation class for Log4TSProvider.
+ */
+class Log4TSProviderImpl {
+    constructor(name, defaultConfig, groupConfigs) {
+        this._log = InternalLogger.getInternalLogger("log4ts.impl.Log4TSProviderImpl");
+        this._name = name;
+        /* The default config, used as fallback if a logger does not match any group */
+        this._defaultConfig = [Object.assign(Object.assign({}, defaultConfig), { identifier: defaultConfig.identifier }), createLogProvider("log4ts_" + name + "_" + defaultConfig.identifier, defaultConfig)];
+        /* Create various providers for the different groups so each will have the correct config */
+        this._logProviders = new Map(groupConfigs.map(config => {
+            const updatedConfig = Object.assign({}, config);
+            const provider = createLogProvider("log4ts_" + name + "_" + config.identifier, config);
+            return [config.identifier, { groupConfig: updatedConfig, provider }];
+        }));
+        this._log.trace(() => {
+            const groupProvLog = [...this._logProviders.values()].map(e => log4TSGroupConfigDebug(e.groupConfig)).join(", ");
+            return `Creating Log4TSProviderImpl '${this._name}', defaultConfig: ${log4TSGroupConfigDebug(this._defaultConfig[0])}, groupConfigs: ${groupProvLog}`;
+        });
+    }
+    get name() {
+        return this._name;
+    }
+    get config() {
+        /* We create the settings to return anew, to prevent people change the content in any way */
+        return Object.assign({}, this._defaultConfig[0]);
+    }
+    get groupConfigs() {
+        /* We create the settings to return anew, to prevent people change the content in any way */
+        return [...this._logProviders.values()].map(v => (Object.assign({}, v.groupConfig)));
+    }
+    getLogger(name) {
+        /* Walk them in insertion order, that is the order we must match for */
+        for (const value of this._logProviders.values()) {
+            if (value.groupConfig.expression.test(name)) {
+                return value.provider.getLogger(name);
+            }
+        }
+        /* Fallback to the default we don't care if it matches in this case */
+        return this._defaultConfig[1].getLogger(name);
+    }
+    updateRuntimeSettingsGroup(identifier, config) {
+        const value = this._logProviders.get(identifier);
+        if (value === undefined) {
+            throw new Error(`Cannot update group with identifier '${identifier}', it does not exist.`);
+        }
+        this._log.debug(() => `Will update ${log4TSGroupConfigDebug(value.groupConfig)}, associated LogProvider '${value.provider}' - applying runtime change: ${JSON.stringify(config)}.`);
+        Log4TSProviderImpl.updateLog4TGroupConfig(value.groupConfig, value.provider, config);
+    }
+    updateRuntimeSettings(settings) {
+        this._log.debug(() => `Will update settings for all groups and existing loggers - will apply runtime change: ${JSON.stringify(settings)}.`);
+        this._logProviders.forEach(value => {
+            const groupConfig = value.groupConfig;
+            const provider = value.provider;
+            this._log.debug(() => `Will update ${log4TSGroupConfigDebug(groupConfig)}, associated LogProvider '${provider}' - applying runtime change: ${JSON.stringify(settings)}.`);
+            Log4TSProviderImpl.updateLog4TGroupConfig(groupConfig, provider, settings);
+        });
+    }
+    static updateLog4TGroupConfig(cfg, provider, runtimeSettings) {
+        if (runtimeSettings.level) {
+            cfg.level = runtimeSettings.level;
+        }
+        if (runtimeSettings.channel) {
+            cfg.channel = runtimeSettings.channel;
+        }
+        provider.updateRuntimeSettings(runtimeSettings);
+    }
+}
+
+/**
+ * Implementation for Log4TSControlProvider.
+ */
+class Log4TSControlProviderImpl {
+    constructor(provider, messageChannel) {
+        this._provider = provider;
+        this._messageChannel = messageChannel;
+        // Identifier is guaranteed to be set internally.
+        this._originalLogLevels = Log4TSControlProviderImpl.loadCurrentGroupLogLevels(provider);
+    }
+    get name() {
+        return this._provider.name;
+    }
+    showSettings() {
+        let result = `Available group configs (Log4TSProvider '${this._provider.name}'):\n`;
+        /*
+         * Make the identifier always set, similar on how to update a group.
+         */
+        const groupConfigs = this._provider.groupConfigs.map(cfg => ({
+            level: LogLevel[cfg.level],
+            channelDescription: cfg.channel.toString ? cfg.channel.toString() : JSON.stringify(cfg.channel),
+            identifier: cfg.identifier,
+        }));
+        const maxWidthIndex = groupConfigs.length.toString().length;
+        const maxWidthIdentifier = index.maxLengthStringValueInArray(groupConfigs.map(cfg => cfg.identifier));
+        const maxWidthLevel = 5;
+        /*
+          We create this kind of output:
+    
+          Available group configs (Log4TSProvider 'test'):
+            [0, /model.+/:             level=Error]
+            [1, /advanced.+/:          level=Warn ]
+            [2, my awesome identifier: level=Error]
+            [3, /blaat.blaat.+/:       level=Error]
+         */
+        const providerLines = groupConfigs
+            .map((cfg, index$1) => `  [${index.padStart(index$1.toString(), maxWidthIndex)}, ${index.padEnd(cfg.identifier, maxWidthIdentifier)} (level=${index.padEnd(cfg.level, maxWidthLevel)})]`)
+            .join("\n");
+        result += providerLines + "\n";
+        this._messageChannel(result);
+    }
+    update(level, groupId) {
+        const newLevel = LogLevel.toLogLevel(level);
+        if (newLevel === undefined) {
+            throw new Error(`Cannot update log provider, log level '${level}' is invalid.`);
+        }
+        const settings = {
+            level: newLevel,
+        };
+        /*
+         * Update all groups.
+         */
+        if (groupId === undefined) {
+            this._provider.updateRuntimeSettings(settings);
+            this._messageChannel("Updated all group configs successfully.");
+            return;
+        }
+        /*
+         * Find the group by index and update it using its identifier.
+         */
+        if (typeof groupId === "number") {
+            const groups = this._provider.groupConfigs;
+            if (groupId < 0 || groupId >= groups.length) {
+                throw new Error(`Group config with index '${groupId}' does not exist (outside of range).`);
+            }
+            const expectedGroup = groups[groupId];
+            this._provider.updateRuntimeSettingsGroup(expectedGroup.identifier, settings);
+            this._messageChannel(`Updated group config with index '${groupId}' successfully.`);
+            return;
+        }
+        /* Update the group by its identifier directly */
+        this._provider.updateRuntimeSettingsGroup(groupId, settings);
+        this._messageChannel(`Updated group config with id '${groupId}' successfully.`);
+    }
+    reset() {
+        this._originalLogLevels.forEach((value, key) => {
+            this._provider.updateRuntimeSettingsGroup(key, { level: value });
+        });
+        this._messageChannel("Successfully reset log levels back to original state (from when this Log4TSControlProvider was created).");
+    }
+    save() {
+        if (!localStorage) {
+            this._messageChannel("Cannot save state, localStorage is not available.");
+            return;
+        }
+        const data = {
+            name: this._provider.name,
+            groups: this._provider.groupConfigs.map(cfg => ({ identifier: cfg.identifier, level: LogLevel[cfg.level] })),
+        };
+        localStorage.setItem(this.createKey(), JSON.stringify(data));
+        this._messageChannel(`Successfully saved state for Log4TSControlProvider '${this._provider.name}'.`);
+    }
+    restore(logRestoreFailures) {
+        const finalLogRestoreFailures = logRestoreFailures !== undefined ? logRestoreFailures : true;
+        if (!localStorage) {
+            if (finalLogRestoreFailures) {
+                this._messageChannel(`Will not attempt to restore state for Log4TSControlProvider '${this._provider.name}', localStorage is not available.`);
+            }
+            return;
+        }
+        const key = this.createKey();
+        const value = localStorage.getItem(key);
+        if (value === null) {
+            if (finalLogRestoreFailures) {
+                this._messageChannel(`Cannot restore state for Log4TSControlProvider '${this._provider.name}', no data available.`);
+            }
+            return;
+        }
+        try {
+            const savedData = JSON.parse(value);
+            if (this._provider.name !== savedData.name) {
+                if (finalLogRestoreFailures) {
+                    this._messageChannel(`Cannot restore state for Log4TSControlProvider '${this._provider.name}', data is not for provider - found name '${savedData.name}'.`);
+                }
+                return;
+            }
+            this.restoreGroups(savedData, finalLogRestoreFailures);
+            this._originalLogLevels = Log4TSControlProviderImpl.loadCurrentGroupLogLevels(this._provider);
+        }
+        catch (e) {
+            localStorage.removeItem(key);
+            this._messageChannel(`Cannot restore state for Log4TSControlProvider '${this._provider.name}', data is not valid. Invalid data removed from localStorage.`);
+        }
+    }
+    help() {
+        const msg = `You can use the following commands (Log4TSProvider ${this._provider.name}):\n` +
+            "  showSettings()\n" +
+            "    Shows the current configuration settings.\n" +
+            "  update(logLevel: Log4TSControlProviderLogLevel, groupId?: number | string)\n" +
+            "    Change the log level for one or all config groups.\n" +
+            "      @param level   The log level to set - must be one of 'trace', 'debug', 'info', 'warn', 'error' or 'fatal'\n" +
+            "      @param groupId Optional group config to update by either index or identifier, when omitted updates all groups.\n" +
+            "                     Use showSettings() to find details about index and/or identifier.\n" +
+            "  reset()\n" +
+            "    Resets the log levels of the config groups back to when this control provider was created.\n" +
+            "  save()\n" +
+            "    Saves the current log levels for all config groups of this provider. Use restore() to load last saved state.\n" +
+            "  restore()\n" +
+            "    Restore stored saved state, if any. Log levels will be set according to saved state.\n" +
+            "  help()\n" +
+            "    Shows this help.\n";
+        this._messageChannel(msg);
+    }
+    restoreGroups(saveData, logCannotRestore) {
+        saveData.groups.forEach(group => {
+            try {
+                const newLevel = LogLevel.toLogLevel(group.level);
+                if (newLevel !== undefined) {
+                    this._provider.updateRuntimeSettingsGroup(group.identifier, { level: newLevel });
+                    this._messageChannel(`Log4TSControlProvider '${this._provider.name}' - restored log level of group '${group.identifier}' to '${LogLevel[newLevel]}'.`);
+                }
+                else {
+                    if (logCannotRestore) {
+                        this._messageChannel(`Log4TSControlProvider '${this._provider.name}' - failed to restore log level of group '${group.identifier}', invalid log level was specified.`);
+                    }
+                }
+            }
+            catch (e) {
+                if (logCannotRestore) {
+                    this._messageChannel(`Log4TSControlProvider '${this._provider.name}' - failed to restore log level of group '${group.identifier}'.`);
+                }
+            }
+        });
+    }
+    createKey() {
+        return `Log4TSProvider-${this._provider.name}`;
+    }
+    static loadCurrentGroupLogLevels(provider) {
+        return new Map(provider.groupConfigs.map(cfg => [cfg.identifier, cfg.level]));
+    }
+}
+
+/**
+ * Provider for the Log4TS flavor, each provider is a unique instance that can be used to
+ * get loggers from.
+ */
+class Log4TSProviderService {
+    constructor() {
+        this._log = InternalLogger.getInternalLogger("log4ts.impl.Log4TSProviderService");
+        this._providers = new index.EnhancedMap();
+    }
+    createLogProvider(name, config) {
+        const result = this._providers.compute(name, (key, currentValue) => {
+            if (currentValue) {
+                throw new Error(`Log4TSProvider with name '${name}' already exists, cannot create another.`);
+            }
+            const mainConfig = mergeLog4TSConfigs(createDefaultLog4TSConfig(), config);
+            validateLog4TSConfig(mainConfig);
+            this._log.debug(() => `Creating new Log4TSProvider with name '${name}', using main config settings '${log4TSConfigDebug(mainConfig)}'.`);
+            const defaultExpression = new RegExp(".+");
+            const defaultGroupConfig = {
+                channel: mainConfig.channel,
+                level: mainConfig.level,
+                expression: defaultExpression,
+                dateFormatter: mainConfig.dateFormatter,
+                argumentFormatter: mainConfig.argumentFormatter,
+                identifier: defaultExpression.toString(),
+            };
+            return new Log4TSProviderImpl(key, defaultGroupConfig, mainConfig.groups);
+        });
+        // Cannot be undefined we do not allow it.
+        return result;
+    }
+    /**
+     * Clears all providers and configuration, the service reverts back to initial state.
+     */
+    clear() {
+        this._providers.clear();
+    }
+    getLog4TSControl(fnValue) {
+        const fnMessageChannel = fnValue ? fnValue : (value) => {
+            // tslint:disable-next-line:no-console
+            if (console && console.log) {
+                // tslint:disable-next-line:no-console
+                console.log(value);
+            }
+            else {
+                throw new Error("Cannot use console (it is not present), please specify a custom function to write to.");
+            }
+        };
+        return {
+            help: () => fnMessageChannel(Log4TSProviderService.help()),
+            showSettings: () => fnMessageChannel(this.showSettings()),
+            getProvider: (id) => this.getLog4TSControlProviderByIdOrName(id, fnMessageChannel),
+        };
+    }
+    showSettings() {
+        let result = "Available Log4TSProviders:\n";
+        const maxWidthIndex = this._providers.size.toString().length;
+        const maxWidthName = index.maxLengthStringValueInArray([...this._providers.keys()]);
+        const lines = [...this._providers.entries()].map((entry, index$1) => {
+            const name = entry[0];
+            /* [idx, name] */
+            return `  [${index.padStart(index$1.toString(), maxWidthIndex)}, ${index.padEnd(name, maxWidthName)}]`;
+        });
+        result += lines.join("\n") + (lines.length > 0 ? "\n" : "");
+        return result;
+    }
+    getLog4TSControlProviderByIdOrName(id, messageChannel) {
+        if (typeof id === "string") {
+            const provider = this._providers.get(id);
+            if (provider === undefined) {
+                throw new Error(`Provider with name '${id}' does not exist.`);
+            }
+            return new Log4TSControlProviderImpl(provider, messageChannel);
+        }
+        const providers = [...this._providers.values()];
+        if (id < 0 || id >= providers.length) {
+            throw new Error(`Provider with index '${id}' does not exist (outside of range).`);
+        }
+        return new Log4TSControlProviderImpl(providers[id], messageChannel);
+    }
+    static help() {
+        return "You can use the following commands:\n" +
+            "  showSettings()\n" +
+            "    Shows the current configuration settings.\n" +
+            "  getProvider: (id: number | string): Log4TSControlProvider\n" +
+            "    Get access to a Log4TSControlProvider to change log levels.\n" +
+            "      @param id The id (use showSettings to see) or name of the provider\n" +
+            "  help()\n" +
+            "    Shows this help.\n";
+    }
+}
+/**
+ * Singleton instance to the service, for internal usage only. Must NOT be exported to end user.
+ */
+const LOG4TS_PROVIDER_SERVICE = new Log4TSProviderService();
+const LOG4TS_LOG_CONTROL = fnValue => LOG4TS_PROVIDER_SERVICE.getLog4TSControl(fnValue);
+function createDefaultLog4TSConfig() {
+    return {
+        argumentFormatter: formatArgument,
+        channel: DefaultChannels.createConsoleChannel(),
+        dateFormatter: formatDate,
+        groups: [],
+        level: LogLevel.Error,
+    };
+}
+function mergeLog4TSConfigs(lhs, rhs) {
+    const value = {
+        argumentFormatter: rhs.argumentFormatter ? rhs.argumentFormatter : lhs.argumentFormatter,
+        channel: rhs.channel ? rhs.channel : lhs.channel,
+        dateFormatter: rhs.dateFormatter ? rhs.dateFormatter : lhs.dateFormatter,
+        groups: [],
+        level: rhs.level !== undefined ? rhs.level : lhs.level,
+    };
+    /*
+     * Groups must take over the defaults from the main config when they don't specify config themselves.
+     */
+    value.groups = rhs.groups.map(groupConfig => mergeLog4TSGroupConfigs(value, groupConfig));
+    return value;
+}
+function mergeLog4TSGroupConfigs(lhs, rhs) {
+    return {
+        argumentFormatter: rhs.argumentFormatter ? rhs.argumentFormatter : lhs.argumentFormatter,
+        channel: lhs.channel,
+        dateFormatter: rhs.dateFormatter ? rhs.dateFormatter : lhs.dateFormatter,
+        expression: rhs.expression,
+        level: rhs.level !== undefined ? rhs.level : lhs.level,
+        identifier: rhs.identifier ? rhs.identifier : rhs.expression.toString(),
+    };
+}
+function validateLog4TSConfig(config) {
+    if (config.groups.length === 0) {
+        throw new Error("Invalid configuration, 'groups' on configuration is empty, at least 1 group config must be specified.");
+    }
+}
+
+// tslint:disable-next-line:no-namespace
+exports.Log4TSProvider = void 0;
+(function (Log4TSProvider) {
+    /**
+     * Creates a new log provider with given name and configuration. If a provider
+     * with such name already exists, an Error will be thrown.
+     * @param name Name for provider, must be unique
+     * @param config The config for the provider
+     */
+    function createProvider(name, config) {
+        return LOG4TS_PROVIDER_SERVICE.createLogProvider(name, config);
+    }
+    Log4TSProvider.createProvider = createProvider;
+    /**
+     * Resets and clears *all* created Log4TSProviders, every logger that was retrieved previously
+     * through any of them will be invalid afterwards.
+     *
+     * This call essentially reverts the created Log4TSProviders back to their initial state. This should normally not be used
+     * unless absolutely necessary.
+     */
+    function clear() {
+        LOG4TS_PROVIDER_SERVICE.clear();
+    }
+    Log4TSProvider.clear = clear;
+})(exports.Log4TSProvider || (exports.Log4TSProvider = {}));
+
+exports.LOG4TS_LOG_CONTROL = LOG4TS_LOG_CONTROL;
+//# sourceMappingURL=typescript-logging-log4ts.js.map
+
+
+/***/ }),
+
+/***/ 7282:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+/**
+ * Extends Map and adds a few convenient functions.
+ */
+class EnhancedMap extends Map {
+    /**
+     * If key has a mapping already returns the currently associated value. If
+     * there is no mapping, calls the computer which must return a value V.
+     * The value is then stored for given key and returned.
+     * @param key Key
+     * @param computer Computer which is called only if key has no mapping yet.
+     * @return Existing value if the key already existed, or the newly computed value.
+     */
+    computeIfAbsent(key, computer) {
+        if (this.has(key)) {
+            return this.get(key);
+        }
+        const newValue = computer(key);
+        this.set(key, newValue);
+        return newValue;
+    }
+    /**
+     * If the key exists already calls given computer, if the key does not exist
+     * this method does nothing.
+     *
+     * The computer is called with current key and current value associated. The
+     * computer can return a (new) value V or undefined. When undefined is returned
+     * the key is removed from this map, when a V is returned the key is updated
+     * with the new value V.
+     * @param key Key
+     * @param computer Computer which is called only if the key has a mapping already
+     * @return Undefined if the key has no mapping, otherwise the value returned from computer
+     */
+    computeIfPresent(key, computer) {
+        const currentValue = this.get(key);
+        if (currentValue === undefined) {
+            return undefined;
+        }
+        const newValue = computer(key, currentValue);
+        if (newValue !== undefined) {
+            this.set(key, newValue);
+        }
+        else {
+            this.delete(key);
+        }
+        return newValue;
+    }
+    /**
+     * Computes a value for given key, the computer can return a value V (in which case the map
+     * will set the value for given key), if it returns undefined the mapping for key K will be
+     * removed.
+     * @param key Key to compute
+     * @param computer Computer which is called, note that the currentValue argument contains the existing
+     *                 value or is undefined when no mapping exists for the key.
+     * @return The newly computed value
+     */
+    compute(key, computer) {
+        const currentValue = this.get(key);
+        const newValue = computer(key, currentValue);
+        if (newValue) {
+            this.set(key, newValue);
+        }
+        else {
+            this.delete(key);
+        }
+        return newValue;
+    }
+}
+
+/**
+ * Internal log level (note: do NOT use LogLevel, or we get circular loading issues!)
+ */
+var InternalLogLevel;
+(function (InternalLogLevel) {
+    InternalLogLevel[InternalLogLevel["Trace"] = 0] = "Trace";
+    InternalLogLevel[InternalLogLevel["Debug"] = 1] = "Debug";
+    InternalLogLevel[InternalLogLevel["Info"] = 2] = "Info";
+    InternalLogLevel[InternalLogLevel["Warn"] = 3] = "Warn";
+    InternalLogLevel[InternalLogLevel["Error"] = 4] = "Error";
+})(InternalLogLevel || (InternalLogLevel = {}));
+/**
+ * Internal logger, this is NOT for end users. Instead this is used to enable logging for typescript-logging itself in case of problems.
+ *
+ * @param name Name of logger
+ */
+function getInternalLogger(name) {
+    return provider.getLogger(name);
+}
+/**
+ * Can be used to change the *internal* logging of the library.
+ * Has no effect on end user logging.
+ *
+ * As such should normally not be used by end users.
+ */
+const INTERNAL_LOGGING_SETTINGS = {
+    /**
+     * Changes the log level for the internal logging (for all new and existing loggers)
+     * @param level New log level
+     */
+    setInternalLogLevel: (level) => provider.changeLogLevel(level),
+    /**
+     * Changes where messages are written to for all new and existing loggers),
+     * by default they are written to the console.
+     * @param fnOutput Function to write messages to
+     */
+    setOutput: (fnOutput) => provider.changeOutput(fnOutput),
+    /**
+     * Resets the log level and output back to defaults (level to error and writing to console)
+     * for all new and existing loggers.
+     */
+    reset: () => provider.reset(),
+};
+class InternalLoggerImpl {
+    constructor(name, level, fnOutput) {
+        this._name = name;
+        this._level = level;
+        this._fnOutput = fnOutput;
+    }
+    trace(msg) {
+        this.log(InternalLogLevel.Trace, msg);
+    }
+    debug(msg) {
+        this.log(InternalLogLevel.Debug, msg);
+    }
+    error(msg, error) {
+        this.log(InternalLogLevel.Error, msg, error);
+    }
+    info(msg) {
+        this.log(InternalLogLevel.Info, msg);
+    }
+    warn(msg, error) {
+        this.log(InternalLogLevel.Warn, msg, error);
+    }
+    setLevel(level) {
+        this._level = level;
+    }
+    setOutput(fnOutput) {
+        this._fnOutput = fnOutput;
+    }
+    log(level, msg, error) {
+        if (this._level > level) {
+            return;
+        }
+        // tslint:disable-next-line:no-console
+        this._fnOutput(`${InternalLogLevel[this._level].toString()} <INTERNAL LOGGER> ${this._name} ${msg()}${error ? "\n" + error.stack : ""}`);
+    }
+}
+class InternalProviderImpl {
+    constructor() {
+        this._loggers = new EnhancedMap();
+        this._logLevel = InternalLogLevel.Error;
+        this._fnOutput = InternalProviderImpl.logConsole;
+    }
+    getLogger(name) {
+        return this._loggers.computeIfAbsent(name, key => new InternalLoggerImpl(key, this._logLevel, this._fnOutput));
+    }
+    changeLogLevel(level) {
+        this._logLevel = level;
+        this._loggers.forEach(logger => logger.setLevel(level));
+    }
+    changeOutput(_fnOutput) {
+        this._fnOutput = _fnOutput;
+        this._loggers.forEach(logger => logger.setOutput(this._fnOutput));
+    }
+    reset() {
+        this.changeLogLevel(InternalLogLevel.Error);
+        this._fnOutput = InternalProviderImpl.logConsole;
+        this._loggers.forEach(logger => logger.setOutput(this._fnOutput));
+    }
+    static logConsole(msg) {
+        // tslint:disable-next-line:no-console
+        if (console && console.log) {
+            // tslint:disable-next-line:no-console
+            console.log(msg);
+        }
+    }
+}
+const provider = new InternalProviderImpl();
+
+var InternalLogger = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  get InternalLogLevel () { return InternalLogLevel; },
+  getInternalLogger: getInternalLogger,
+  INTERNAL_LOGGING_SETTINGS: INTERNAL_LOGGING_SETTINGS
+});
+
+/**
+ * Log level for a logger.
+ */
+exports.LogLevel = void 0;
+(function (LogLevel) {
+    // Do not reverse/change order, a test relies on it.
+    LogLevel[LogLevel["Trace"] = 0] = "Trace";
+    LogLevel[LogLevel["Debug"] = 1] = "Debug";
+    LogLevel[LogLevel["Info"] = 2] = "Info";
+    LogLevel[LogLevel["Warn"] = 3] = "Warn";
+    LogLevel[LogLevel["Error"] = 4] = "Error";
+    LogLevel[LogLevel["Fatal"] = 5] = "Fatal";
+})(exports.LogLevel || (exports.LogLevel = {}));
+/* tslint:disable:no-namespace */
+(function (LogLevel) {
+    /**
+     * Convert given value to LogLevel, if not matching returns undefined.
+     * @param val Value to convert
+     */
+    function toLogLevel(val) {
+        switch (val.toLowerCase()) {
+            case "trace":
+                return LogLevel.Trace;
+            case "debug":
+                return LogLevel.Debug;
+            case "info":
+                return LogLevel.Info;
+            case "warn":
+                return LogLevel.Warn;
+            case "error":
+                return LogLevel.Error;
+            case "fatal":
+                return LogLevel.Fatal;
+            default:
+                return undefined;
+        }
+    }
+    LogLevel.toLogLevel = toLogLevel;
+})(exports.LogLevel || (exports.LogLevel = {}));
+/* tslint:disable:enable-namespace */
+
+/**
+ * Standard logger implementation that provides the basis for all loggers.
+ */
+class CoreLoggerImpl {
+    constructor(runtime) {
+        this._runtime = runtime;
+    }
+    get id() {
+        return this._runtime.id;
+    }
+    get logLevel() {
+        return this._runtime.level;
+    }
+    get runtimeSettings() {
+        /* Return it as new literal, we don't want people to play with our internal state */
+        return Object.assign({}, this._runtime);
+    }
+    set runtimeSettings(runtime) {
+        this._runtime = runtime;
+    }
+    trace(message, ...args) {
+        this.logMessage(exports.LogLevel.Trace, message, args);
+    }
+    debug(message, ...args) {
+        this.logMessage(exports.LogLevel.Debug, message, args);
+    }
+    info(message, ...args) {
+        this.logMessage(exports.LogLevel.Info, message, args);
+    }
+    warn(message, ...args) {
+        this.logMessage(exports.LogLevel.Warn, message, args);
+    }
+    error(message, ...args) {
+        this.logMessage(exports.LogLevel.Error, message, args);
+    }
+    fatal(message, ...args) {
+        this.logMessage(exports.LogLevel.Fatal, message, args);
+    }
+    logMessage(level, logMessageType, args) {
+        if (this._runtime.level > level) {
+            return;
+        }
+        const nowMillis = Date.now();
+        const message = typeof logMessageType === "string" ? logMessageType : logMessageType();
+        const errorAndArgs = CoreLoggerImpl.getErrorAndArgs(args);
+        /*
+         * Deal with raw message here.
+         */
+        switch (this._runtime.channel.type) {
+            case "RawLogChannel":
+                this._runtime.channel.write({
+                    message,
+                    exception: errorAndArgs.error,
+                    args: errorAndArgs.args,
+                    timeInMillis: nowMillis,
+                    level,
+                    logNames: this._runtime.name,
+                }, this._runtime.argumentFormatter);
+                return;
+            case "LogChannel":
+                this._runtime.channel.write(this.createLogMessage(message, level, errorAndArgs, nowMillis));
+                break;
+        }
+    }
+    formatArgValue(value) {
+        try {
+            return this._runtime.argumentFormatter(value);
+        }
+        catch (e) {
+            // We don't really care what failed, except that the convert function failed.
+            return `>>ARG CONVERT FAILED: '${value !== undefined ? value.toString() : "undefined"}'<<`;
+        }
+    }
+    createLogMessage(message, level, errorAndArgs, nowMillis) {
+        let errorResult;
+        const error = errorAndArgs.error;
+        const args = errorAndArgs.args;
+        if (error) {
+            errorResult = `${error.name}: ${error.message}`;
+            if (error.stack) {
+                errorResult += `@\n${error.stack}`;
+            }
+        }
+        /*
+         * We need to add the date, and log names (in front of the now formatted message).
+         * Finally we also need to format any additional arguments and append after the message.
+         */
+        const dateFormatted = this._runtime.dateFormatter(nowMillis);
+        let levelAsStr = exports.LogLevel[level].toUpperCase();
+        if (levelAsStr.length < 5) {
+            levelAsStr += " ";
+        }
+        const names = typeof this._runtime.name === "string" ? this._runtime.name : this._runtime.name.join(", ");
+        const argsFormatted = typeof args !== "undefined" && args.length > 0 ? (" [" + (args.map(arg => this.formatArgValue(arg))).join(", ") + "]") : "";
+        const completedMessage = dateFormatted + " " + levelAsStr + " [" + names + "] " + message + argsFormatted;
+        return {
+            message: completedMessage,
+            error: errorResult,
+        };
+    }
+    static getErrorAndArgs(args) {
+        /*
+          The args are optional, but the first entry may be an Error or a function to an Error, or finally be a function to extra arguments.
+          The last is only true, if the length of args === 1, otherwise we expect args starting at pos 1 and further to be just that - args.
+         */
+        if (args.length === 0) {
+            return {};
+        }
+        let error;
+        let actualArgs;
+        const value0 = args[0];
+        /* If the first argument is an Error, we can stop straight away, the rest are additional arguments then if any */
+        if (value0 instanceof Error) {
+            error = value0;
+            actualArgs = args.length > 1 ? args.slice(1) : undefined;
+            return { error, args: actualArgs };
+        }
+        /* If the first argument is a function, it means either it will return the Error, or if the array length === 1 a function, returning the arguments */
+        if (typeof value0 === "function") {
+            const errorOrArgs = value0();
+            if (errorOrArgs instanceof Error) {
+                error = errorOrArgs;
+                actualArgs = args.length > 1 ? args.slice(1) : undefined;
+                return { error, args: actualArgs };
+            }
+            if (args.length === 1) {
+                /* The first argument was a function, we assume it returned the extra argument(s) */
+                if (Array.isArray(errorOrArgs)) {
+                    return { args: errorOrArgs.length > 0 ? errorOrArgs : undefined };
+                }
+                else {
+                    /* No idea what was returned we just assume a single value */
+                    return { args: errorOrArgs };
+                }
+            }
+            else {
+                /*
+                  This is a weird situation but there's no way to avoid it, the first argument was a function but did not return an Error and the args are > 1,
+                  so just add the args returned, as well as any remaining.
+                */
+                if (Array.isArray(errorOrArgs)) {
+                    return { args: [...errorOrArgs, ...args.slice(1)] };
+                }
+                return { args: [errorOrArgs, ...args.slice(1)] };
+            }
+        }
+        /* All args are ordinary arguments, or at least the first arg was not an Error or a Function, so we add all as args */
+        return { args };
+    }
+}
+
+/**
+ * Pad given value with given fillChar from the beginning (default is an empty space)
+ * @param value Value to pad
+ * @param length The length the string must be
+ * @param fillChar The padding char (1 char length allowed only)
+ * @return Padded string or the same string if it is already of given length (or larger).
+ */
+function padStart(value, length, fillChar = " ") {
+    return padInternal(value, length, "start", fillChar);
+}
+/**
+ * Pad given value with given fillChar from the end (default is an empty space)
+ * @param value Value to pad
+ * @param length The length the string must be
+ * @param fillChar The padding char (1 char length allowed only)
+ * @return Padded string or the same string if it is already of given length (or larger).
+ */
+function padEnd(value, length, fillChar = " ") {
+    return padInternal(value, length, "end", fillChar);
+}
+/**
+ * Returns the max length of a string value in given array
+ * @param arr Array to check
+ * @return Max length, 0 if array is empty
+ */
+function maxLengthStringValueInArray(arr) {
+    return arr
+        .map(v => v.length)
+        .reduce((previous, current) => {
+        if (current > previous) {
+            return current;
+        }
+        return previous;
+    }, 0);
+}
+function padInternal(value, length, padType, fillChar = " ") {
+    if (length <= value.length) {
+        return value;
+    }
+    if (fillChar.length > 1) {
+        throw new Error(`Fill char must be one char exactly, it is: ${fillChar.length}`);
+    }
+    const charsNeeded = length - value.length;
+    let padding = "";
+    for (let i = 0; i < charsNeeded; i++) {
+        padding += fillChar;
+    }
+    if (padType === "start") {
+        return padding + value;
+    }
+    return value + padding;
+}
+
+/**
+ * Default argument formatter function, used by the library, see {@link ArgumentFormatterType}.
+ * Can be used by an end user as well if needed.
+ * @param arg The argument to format
+ * @returns argument stringified to string (JSON.stringify), if arg is undefined returns "undefined" (without quotes).
+ */
+function formatArgument(arg) {
+    if (arg === undefined) {
+        return "undefined";
+    }
+    return JSON.stringify(arg);
+}
+/**
+ * Default date formatter function, used by the library, see {@link DateFormatterType}.
+ * Can be used by an end user as well if needed.
+ * @param millisSinceEpoch Milliseconds since epoch
+ * @returns The date in format: yyyy-MM-dd HH:mm:ss,SSS (example: 2021-02-26 09:06:28,123)
+ */
+function formatDate(millisSinceEpoch) {
+    const date = new Date(millisSinceEpoch);
+    const year = date.getFullYear();
+    const month = padStart((date.getMonth() + 1).toString(), 2, "0");
+    const day = padStart(date.getDate().toString(), 2, "0");
+    const hours = padStart(date.getHours().toString(), 2, "0");
+    const minutes = padStart(date.getMinutes().toString(), 2, "0");
+    const seconds = padStart(date.getSeconds().toString(), 2, "0");
+    const millis = padStart(date.getMilliseconds().toString(), 2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds},${millis}`;
+}
+
+/* tslint:disable:no-console */
+/**
+ * Default standard LogChannel which logs to console.
+ */
+class ConsoleLogChannel {
+    constructor() {
+        this.type = "LogChannel";
+    }
+    write(msg) {
+        if (console && console.log) {
+            console.log(msg.message + (msg.error ? `\n${msg.error}` : ""));
+        }
+    }
+}
+
+/* tslint:disable:no-namespace */
+/**
+ * Provides access to various default channels provided by typescript logging.
+ */
+exports.DefaultChannels = void 0;
+(function (DefaultChannels) {
+    /**
+     * Create a new standard LogChannel that logs to the console.
+     */
+    function createConsoleChannel() {
+        return new ConsoleLogChannel();
+    }
+    DefaultChannels.createConsoleChannel = createConsoleChannel;
+})(exports.DefaultChannels || (exports.DefaultChannels = {}));
+
+/**
+ * Implementation for {@link LogProvider}
+ */
+class LogProviderImpl {
+    constructor(name, settings) {
+        this._log = getInternalLogger("core.impl.LogProviderImpl");
+        this._name = name;
+        this._settings = settings;
+        this._loggers = new EnhancedMap();
+        this._idToKeyMap = new EnhancedMap();
+        this._globalRuntimeSettings = { level: settings.level, channel: settings.channel };
+        this._nextLoggerId = 1;
+        this._log.trace(() => `Created LogProviderImpl with settings: ${JSON.stringify(this._settings)}`);
+    }
+    get runtimeSettings() {
+        return Object.assign(Object.assign({}, this._settings), { level: this._globalRuntimeSettings.level, channel: this._globalRuntimeSettings.channel });
+    }
+    getLogger(name) {
+        return this.getOrCreateLogger(name);
+    }
+    updateLoggerRuntime(log, settings) {
+        this._log.debug(() => `Updating logger ${log.id} runtime settings using: '${JSON.stringify(settings)}'`);
+        const key = this._idToKeyMap.get(log.id);
+        if (key === undefined) {
+            this._log.warn(() => `Cannot update logger with id: ${log.id}, it was not found.`);
+            return false;
+        }
+        this._loggers.computeIfPresent(key, (currentKey, currentValue) => {
+            currentValue.runtimeSettings = LogProviderImpl.mergeRuntimeSettingsIntoLogRuntime(currentValue.runtimeSettings, settings);
+            return currentValue;
+        });
+        return true;
+    }
+    updateRuntimeSettings(settings) {
+        this._log.debug(() => `Updating global runtime settings and updating existing loggers runtime settings using: '${JSON.stringify(settings)}'`);
+        this._globalRuntimeSettings = {
+            /*
+             * Undefined check is necessary, as level is a number (and LogLevel.Trace = 0), a ternary check otherwise results in the annoying "truthy/falsy"
+             * behavior of javascript where 0 is seen as false.
+             */
+            level: settings.level !== undefined ? settings.level : this._globalRuntimeSettings.level,
+            channel: settings.channel !== undefined ? settings.channel : this._globalRuntimeSettings.channel,
+        };
+        this._loggers.forEach(logger => logger.runtimeSettings = LogProviderImpl.mergeRuntimeSettingsIntoLogRuntime(logger.runtimeSettings, settings));
+    }
+    /**
+     * Removes all state and loggers, it reverts back to as it was after initial construction.
+     */
+    clear() {
+        this._loggers.clear();
+        this._idToKeyMap.clear();
+        this._globalRuntimeSettings = Object.assign({}, this._settings);
+        this._nextLoggerId = 1;
+    }
+    getOrCreateLogger(name) {
+        const key = LogProviderImpl.createKey(name);
+        const logger = this._loggers.computeIfAbsent(key, () => {
+            const runtime = {
+                level: this._globalRuntimeSettings.level,
+                channel: this._globalRuntimeSettings.channel,
+                id: this.nextLoggerId(),
+                name,
+                argumentFormatter: this._settings.argumentFormatter,
+                dateFormatter: this._settings.dateFormatter,
+            };
+            return new CoreLoggerImpl(runtime);
+        });
+        this._idToKeyMap.computeIfAbsent(logger.id, () => key);
+        return logger;
+    }
+    nextLoggerId() {
+        const result = this._name + "_" + this._nextLoggerId;
+        this._nextLoggerId++;
+        return result;
+    }
+    static mergeRuntimeSettingsIntoLogRuntime(currentSettings, settings) {
+        return Object.assign(Object.assign({}, currentSettings), { 
+            /*
+             * Undefined check is necessary, as level is a number (and LogLevel.Trace = 0), a ternary check otherwise results in the annoying "truthy/falsy"
+             * behavior of javascript where 0 is seen as false.
+             */
+            level: settings.level !== undefined ? settings.level : currentSettings.level, channel: settings.channel !== undefined ? settings.channel : currentSettings.channel });
+    }
+    static createKey(name) {
+        if (typeof name === "string") {
+            return name;
+        }
+        return name.join(",");
+    }
+}
+
+/**
+ * Create a new LogProvider, this is for flavor usage only. End users should not
+ * use this and instead use whatever the flavor offers to build some config and
+ * get loggers from there.
+ */
+function createLogProvider(name, settings) {
+    return new LogProviderImpl(name, settings);
+}
+
+var index = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  EnhancedMap: EnhancedMap,
+  padStart: padStart,
+  padEnd: padEnd,
+  maxLengthStringValueInArray: maxLengthStringValueInArray
+});
+
+/**
+ * LogChannel that pushes log messages to a buffer.
+ */
+class ArrayLogChannel {
+    constructor() {
+        this._buffer = [];
+        this.type = "LogChannel";
+    }
+    write(msg) {
+        this._buffer.push(msg);
+    }
+    get logMessages() {
+        return this._buffer;
+    }
+    get messages() {
+        return this._buffer.map(msg => msg.message);
+    }
+}
+/**
+ * RawLogChannel that pushes raw log messages to a buffer.
+ */
+class ArrayRawLogChannel {
+    constructor() {
+        this._buffer = [];
+        this.type = "RawLogChannel";
+    }
+    write(msg, _) {
+        this._buffer.push(msg);
+    }
+    get messages() {
+        return this._buffer.map(m => m.message);
+    }
+    get errors() {
+        return this._buffer.map(m => m.exception);
+    }
+    get size() {
+        return this._buffer.length;
+    }
+    get rawMessages() {
+        return this._buffer;
+    }
+    clear() {
+        this._buffer = [];
+    }
+}
+/**
+ * Test class to help test the log control.
+ */
+class TestControlMessage {
+    constructor() {
+        this._messages = [];
+        this.write = this.write.bind(this);
+    }
+    get messages() {
+        return this._messages;
+    }
+    write(msg) {
+        this._messages.push(msg);
+    }
+    clear() {
+        this._messages = [];
+    }
+}
+
+var TestClasses = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  ArrayLogChannel: ArrayLogChannel,
+  ArrayRawLogChannel: ArrayRawLogChannel,
+  TestControlMessage: TestControlMessage
+});
+
+exports.$internal = InternalLogger;
+exports.$test = TestClasses;
+exports.createLogProvider = createLogProvider;
+exports.formatArgument = formatArgument;
+exports.formatDate = formatDate;
+exports.util = index;
+//# sourceMappingURL=typescript-logging.js.map
 
 
 /***/ }),
