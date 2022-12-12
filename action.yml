@@ -1,10 +1,19 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Approvel production deployment'
+description: 'Creates an issue for approving the production deployment'
+author: 'Anders Bloch'
 inputs:
   repo_token:
     required: true
     description: 'GITHUB TOKEN'
+  approvers:
+    required: true
+    description: Comma separated list of approvers(Github users).
+  highRiskDeployment:
+    required: true
+    description: Is the deployment high risk.
+  circumventApproval:
+    required: true
+    description: True if the deployment should proceed and approval postponed.
 runs:
   using: 'node16'
   main: 'dist/index.js'
